@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <title>mirror</title>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+            <meta name="generator" content="FreeCAD 0.19.24291 (Git)" />
+            <style>
+                * { margin:0; padding:0; }
+                body{
+                    background: #ffffff; /* Old browsers */
+                    background: -moz-linear-gradient(top, #e3e9fc 0%, #ffffff 70%, #e2dab3 100%); /* FF3.6-15 */
+                    background: -webkit-linear-gradient(top, #e3e9fc 0%,#ffffff 70%,#e2dab3 100%); /* Chrome10-25, Safari5.1-6 */
+                    background: linear-gradient(to bottom, #e3e9fc 0%,#ffffff 70%,#e2dab3 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+                }
+                canvas { display: block; }
+                #arrowCanvas  {
+                  position: absolute;
+                  left: 0px;
+                  bottom: 0px;
+                  z-index: 100;
+                }
+                select { width: 170px; }
+            </style>
+        </head>
+        <body>
+            <script type="module">
+                
+                // Direct from mrdoob - r122(10/28/20): https://www.jsdelivr.com/package/npm/three
+                import * as THREE from            'https://cdn.jsdelivr.net/npm/three@0.122.0/build/three.module.js';
+                import { OrbitControls } from     'https://cdn.jsdelivr.net/npm/three@0.122.0/examples/jsm/controls/OrbitControls.js';
+                import Stats from                 'https://cdn.jsdelivr.net/npm/three@0.122.0/examples/jsm/libs/stats.module.js';
+                import { GUI } from               'https://cdn.jsdelivr.net/npm/three@0.122.0/examples/jsm/libs/dat.gui.module.js';
+                import { Line2 } from             'https://cdn.jsdelivr.net/npm/three@0.122.0/examples/jsm/lines/Line2.js';
+                import { LineMaterial } from      'https://cdn.jsdelivr.net/npm/three@0.122.0/examples/jsm/lines/LineMaterial.js';
+                import { LineGeometry } from      'https://cdn.jsdelivr.net/npm/three@0.122.0/examples/jsm/lines/LineGeometry.js';
+                import { EdgeSplitModifier } from 'https://cdn.jsdelivr.net/npm/three@0.122.0/examples/jsm/modifiers/EdgeSplitModifier.js';
+                
+                var disableCompression = false;
+                var base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!#$%&()*+-:;/=>?@[]^_,.{|}~`';
+                var baseFloat = ',.-0123456789';
+                
+                THREE.Object3D.DefaultUp = new THREE.Vector3(0,0,1); // Z is up for FreeCAD
+                
+                var raycasterObj = []; // list of obj that can mouseover highlight 
+                
+                var scene = new THREE.Scene();
+                
+                var renderer = new THREE.WebGLRenderer( { alpha: true, antialias: true } ); // Clear bg so we can set it with css
+                renderer.setClearColor( 0x000000, 0 );
+                var mainCanvas = document.body.appendChild( renderer.domElement );
+                mainCanvas.setAttribute('id', 'mainCanvas');
+                
+                // HemisphereLight gives different colors of light from the top and bottom simulating reflected light from the 'ground' and 'sky'
+                scene.add(new THREE.HemisphereLight(0xC7E8FF, 0xFFE3B3, 0.4));
+                
+                var dLight1 = new THREE.DirectionalLight( 0xffffff, 0.4 );
+                dLight1.position.set( 5, -2, 3 );
+                scene.add( dLight1 );
+                var dLight2 = new THREE.DirectionalLight( 0xffffff, 0.4 );
+                dLight2.position.set( -5, 2, 3 );
+                scene.add( dLight2 );
+                
+                var data = {"camera":{"type":"Orthographic","focalDistance":100.0,"position_x":44.27278137207031,"position_y":2.7986416816711426,"position_z":115.10891723632812},"file":{},"objects":[{"name":"Body","color":"#626262","opacity":1.0,"verts":"2 e b d a b d a b c e b cUbVb d b a d e f dWbXb dYbZb d1b2b d3b4b d5b6b d7b8b d9b0b d!b#b d$b%b d&b(b d)b*b d+b-b d:b;b d/b=b d>b?b d@b[b d]b^b d_b,b d.b{b d|b}b d~b`b dacbc dccdc decfc dgchc dicjc dkclc dmcnc docpc dqcrc d - h dscrc doctc ducnc dkcvc dwcjc dgcxc dycfc dcczc dAcbc d~bBc dCc}b d.bDc dEc,b d]bFc dGc[b d>bHc dIc=b d:bJc dUbKc dWbLc dUbMc dNcVb dOcXb dPcVb dWbQc d1bRc dScXb dTc2b dYbUc dYbVc dWcZb dXcZb dYc2b dZc6b d1b1c d3b2c d3b3c d4c4b d5c4b d5b6c d5b7c d8c6b d9c8b d0c8b d7b!c d7b#c d9b$c d9b%c d&c0b d(c%b d)c0b d!b*c d!b+c d-c#b d:c#b d$b;c d)b/c d$b=c d>c%b d?c(b d@c(b d&b[c d&b]c d)b^c d_c*b d,c*b d+b.c d+b{c d|c-b d}c-b d:b~c d`c;b dad?b dbd;b d/bcd d/bdd ded=b dfd?b dgd^b d@bhd d@bid djd^b d_bkd d_bld dmd{b dnd`b dod{b d|bpd d|bqd drd`b dsddc dactd dacud dvddc decwd decxd dydhc dzdhc dicAd dicBd dCdlc dDdpc dEdlc dmcFd dmcGd dqcHd dIdpc dqcJd d g h dTb h d b e d>bKd d]bLd d.bMd d~bNd dccOd dgcPd dkcQd docRd d -nb d a f dSdrc dTdnc dUdjc dVdfc dWdbc dXd}b dYd,b dZd[b dscJd dscHd d1drc dIdtc dDdtc doc2d d3dnc ducFd ducGd dkc4d dCdvc dzdxc dEdvc d5djc dwcAd dwcBd dydxc dgc6d dycwd dycxd d7dfc dvdzc dsdzc dcc8d d9dbc dActd dAcud drdBc dodDc dndBc d~b0d dCcpd dCcqd d!d}b d.b#d dmdDc dEckd dEcld d$d,b djdFc dgdFc d]b%d d&d[b dGchd dGcid dfdHc dadHc d>b(d d)d=b dIccd dIcdd d`cJc dbdJc d:b*d d+d-b d}c.c d}c{c d@c]c d_c/c d,c/c d)b-d d@c[c d:c+c d:d(b d>c=c d(c=c d$b;d d/d#b d:c*c d9b=d d&c%c d)c%c d>d8b d0c!c d0c#c d8c7c dTcRc dZc7c d5b?d d@d4b d5c2c d5c3c dYcRc d1b[d dXcUc dXcVc d]dZb dScLc dOcLc dWb^d d_dVb dPcKc dPcMc dUb,d dNcMc dYb.d d3b{d d7b|d d!b}d d&b~d d+b`d d/bae d@bbe d_bce d|bde dacee decfe dicge dmche dqcie d f a d + h djepc dkelc dlehc dmedc dne`b doe{b dpe^b dqe?b dre;b dse*b dte%b due0b dve6b dwe2b dxeXb dscie djetc duche dkevc dwcge dlexc dycfe dmezc dAcee dneBc dCcde doeDc dEcce dpeFc dGcbe dqeHc dIcae dreJc dNcKc dScQc dTc1c dOcQc dWcUc dWcVc dYc1c d4c2c d4c3c d8c6c dZc6c d9c!c d9c#c d&c$c d(c;c d)c$c d-c*c d-c+c d?c]c d>c;c d?c[c d_c^c dbd~c d,c^c d|c.c d|c{c d`c~c dedcd deddd dfdKd dadKd dZdhd dZdid djdLd dgdLd dYdkd dYdld dXdqd dmdMd dodMd dXdpd dWdud drdNd dndNd dWdtd dvdOd dsdOd dVdwd dVdxd dydPd dEdQd dzdPd dUdAd dUdBd dCdQd dDdRd dTdFd dTdGd dSdHd dIdRd dSdJd d1dHd d gnb dTbnb d1dJd d3dGd dId2d dDd2d d3dFd dCd4d dEd4d d5dAd d5dBd dyd6d dzd6d d7dwd d7dxd dvd8d dsd8d d9dtd d9dud drd0d dnd0d d!dpd d!dqd d$dld dmd#d dgd%d dod#d d$dkd djd%d d&dhd d&did dfd(d dad(d d)dcd d)ddd d`c*d dbd*d d+d.c d+d{c d_c-d d,c-d d:d[c d:d]c d>c;d d(c;d d/d*c d/d+c d>d#c d&c=d d)c=d d>d!c d@d3c d8c?d dTc[d dZc?d d@d2c d]dVc dYc[d d]dUc d_dMc dSc^d dOc^d d_dKc dxeLc dNc,d dPc,d dxeQc dWc.d d5c{d dXc.d dwe1c dweRc d4c{d dve6c dve7c due%c d9c|d d0c|d due$c d-c}d d:c}d dte;c dte=c dse/c d?c~d d@c~d dse^c d|c`d d}c`d dre~c dedae d:d~d d/d}d d>d|d d@d{d d]d.d d_d,d dZdbe dYdce dXdde dWdee dVdfe dUdge dTdhe dSdie d1die d3dhe d5dge d7dfe d9dee d!dde d$dce d&dbe d)dae d+d`d d f e dxe^d dwe[d dve?d due=d dte;d dse-d dre*d dqe(d dpe%d doe#d dne0d dme8d dle6d dke4d dje2d d +nb djeRd dkeQd dlePd dmeOd dneNd doeMd dpeLd dqeKd d f e c b e c b a cUbVb c e f cWbXb cYbZb c1b2b c3b4b c5b6b c7b8b c9b0b c!b#b c$b%b c&b(b c)b*b c+b-b c:b;b c/b=b c>b?b c@b[b c]b^b c_b,b c.b{b c|b}b c~b`b cacbc cccdc cecfc cgchc cicjc ckclc cmcnc cocpc cqcrc c - h cscrc coctc cucnc ckcvc cwcjc cgcxc cycfc ccczc cAcbc c~bBc cCc}b c.bDc cEc,b c]bFc cGc[b c>bHc cIc=b c:bJc cWbLc cUbKc cUbMc cOcXb cNcVb cPcVb c1bRc cWbQc cTc2b cScXb cYbUc cYbVc cWcZb cXcZb cZc6b cYc2b c1b1c c3b2c c3b3c c4c4b c5c4b c5b7c c5b6c c8c6b c9c8b c0c8b c7b!c c7b#c c9b%c c9b$c c(c%b c&c0b c)c0b c!b*c c!b+c c-c#b c:c#b c)b/c c$b;c c$b=c c>c%b c?c(b c@c(b c&b[c c&b]c c)b^c c,c*b c_c*b c+b.c c+b{c c|c-b c}c-b c:b~c cad?b c`c;b cbd;b c/bcd c/bdd ced=b cgd^b cfd?b c@bhd c@bid cjd^b c_bkd c_bld cnd`b cmd{b cod{b c|bpd c|bqd csddc crd`b cactd cacud cvddc cecwd cecxd cydhc czdhc cicAd cicBd cCdlc cDdpc cEdlc cmcFd cmcGd cqcHd cIdpc cqcJd c g h cTb h c>bKd c]bLd c.bMd c~bNd cccOd cgcPd ckcQd cocRd c -nb cSdrc c a f cTdnc cUdjc cVdfc cWdbc cXd}b cYd,b cZd[b cscJd cscHd c1drc cIdtc cDdtc coc2d c3dnc cucFd cucGd ckc4d cCdvc czdxc cEdvc c5djc cwcAd cwcBd cydxc cgc6d cycwd cycxd c7dfc cvdzc csdzc ccc8d c9dbc cActd cAcud crdBc codDc cndBc c~b0d cCcpd cCcqd c!d}b c.b#d cmdDc cEckd cEcld c$d,b cjdFc cgdFc c]b%d c&d[b cGchd cGcid cfdHc cadHc c>b(d c)d=b cIccd cIcdd c`cJc cbdJc c:b*d c+d-b c}c.c c}c{c c@c]c c_c/c c,c/c c)b-d c@c[c c:c+c c:d(b c>c=c c(c=c c$b;d c/d#b c:c*c c9b=d c&c%c c)c%c c>d8b c0c!c c0c#c cTcRc c8c7c cZc7c c5b?d c@d4b c5c2c c5c3c cYcRc c1b[d cXcUc cXcVc c]dZb cScLc cOcLc cWb^d c_dVb cPcKc cPcMc cUb,d cNcMc cYb.d c3b{d c7b|d c!b}d c&b~d c+b`d c/bae c@bbe c_bce c|bde cacee cecfe cicge cmche cqcie c f a c + h cjepc ckelc clehc cmedc cne`b coe{b cpe^b cqe?b cre;b cse*b cte%b cue0b cve6b cwe2b cxeXb cscie cjetc cuche ckevc cwcge clexc cycfe cmezc cAcee cneBc cCcde coeDc cEcce cpeFc cGcbe cqeHc cIcae creJc cNcKc cScQc cTc1c cOcQc cWcUc cWcVc cYc1c c4c2c c4c3c cZc6c c8c6c c9c!c c9c#c c(c;c c&c$c c)c$c c-c*c c-c+c c?c]c c>c;c c?c[c cbd~c c_c^c c,c^c c|c.c c|c{c c`c~c cedcd ceddd cadKd cfdKd cZdhd cZdid cjdLd cgdLd cYdkd cYdld cXdqd cmdMd codMd cXdpd cWdud crdNd cndNd cWdtd cvdOd csdOd cVdwd cVdxd cEdQd cydPd czdPd cUdAd cUdBd cDdRd cCdQd cTdFd cTdGd cSdHd cIdRd cSdJd c1dHd c gnb cTbnb c1dJd c3dGd cId2d cDd2d c3dFd cCd4d cEd4d c5dAd c5dBd czd6d cyd6d c7dwd c7dxd csd8d cvd8d c9dtd c9dud crd0d cnd0d c!dpd c!dqd c$dld cgd%d cmd#d cod#d c$dkd cjd%d c&dhd c&did cad(d cfd(d c)dcd c)ddd cbd*d c`c*d c+d.c c+d{c c,c-d c_c-d c:d[c c:d]c c>c;d c(c;d c/d*c c/d+c c>d#c c)c=d c&c=d c>d!c c@d3c c8c?d cTc[d cZc?d c@d2c c]dVc cYc[d c]dUc c_dMc cOc^d cSc^d c_dKc cxeLc cPc,d cNc,d cxeQc c5c{d cWc.d cXc.d cwe1c cweRc c4c{d cve6c cve7c cue%c c9c|d c0c|d cue$c c-c}d c:c}d cte;c cte=c cse/c c@c~d c?c~d cse^c c|c`d c}c`d cre~c cedae c:d~d c/d}d c>d|d c@d{d c]d.d c_d,d cZdbe cYdce cXdde cWdee cVdfe cUdge cTdhe cSdie c1die c3dhe c5dge c7dfe c9dee c!dde c$dce c&dbe c)dae c+d`d cxe^d cwe[d cve?d cue=d cte;d cse-d cre*d cqe(d cpe%d coe#d cne0d cme8d cle6d cke4d cje2d c +nb cjeRd ckeQd clePd cmeOd cneNd coeMd cpeLd cqeKd c","facets":"2 a b c a c d e f g h f e i e g j f h k i g l f j m k g n f l o m g p f n q o g r f p s q g t f r u s g v f t w u g x f v y w g z f x A y g B f z C A g D f B E C g F f D G E g H f F I G g J f H K I g L f J M K g N f L O M g P f N Q O g R f P S Q g T f R U S g V f T W U g X f V Y W g Z f X 1 Y g 2 f Z 3 1 g 4 f 2 5 6 7 8 9 0 ! # 6 ! 6 5 $ % 9 $ 9 8 & 7 ( & 5 7 ) 8 0 ) 0 * + - % + % $ : # ! ; & ( ; ( / = * > = ) * ? @ # ? # : [ - + ] = > ] > ^ _ / , _ ; / . { @ . @ ? | } ~ | ~ - | - [ ` ,ab ` _ ,bb ^cbbb ] ^dbebfbdbfb {db { .gb } |hbcbibhbbbcbjbabkbjb `ablbebdbmbnb }mb }gbobjbkbobkbpbqbibrbqbhbibsbeblbsb f 4sb 4ebtbubvbtbvbnbtbnbmbwbpbxbwbobpbyb 3 gybqbrbybrb 3zbAbubzbubtbBbxbCbBbwbxbDbAbzbEbBbCbEbCbFbGbHbIbGbIbAbGbAbDbJbEbFbJbFbKbLbMbHbLbHbGbNbKbObNbJbKbPbMbLbQbNbObQbObRbSbMbPbSbTbMbUbQbRbUbRbVbWbTbSbWbXbYbWbYbTbZbUbVbZbVb1bZb1b2b3bXbWb4bZb2b5bXb3b5b6bXb7b8b9b7b9b0b7b0b!b7b!b#b7b#b$b7b$b%b7b fsb7b%b&b7b&b(b7bsb8b)b*b+b)b+b-b)b-b:b)b:b;b)b;b/b)b/b=b)b=b>b)b>byb)byb g?b4b2b?b2b@b[b*b)b]b6b5b]b^b6b_b7b(b,b[b)b.b?b@b.b@b{b|b7b_b}b^b]b}b~b`b}b`b^bac,b)bbc.b{bbc{bccdc~b}bec7b|bfcbcccfcccgchcac)bic~bdcicjc~bkc7beclchc)bmcfcgcmcgcncocjcicocpcqcocqcjcrc7bkcscnctcscmcncuclc)bvc7brcwcpcocxcsctcxctcyczcuc)bAcpcwcAcBcpcCc7bvcDczc)bEcxcycEcycFcGcBcAcGcHcBcIc7bCcJcDc)bKcEcFcKcFcLcMcHcGcMcNcHcOc7bIcPcJc)bQcKcLcQcLcRcQcRcScTcNcMcTcUcNcVc7bOcWcQcScWcScXcYcPc)bZcUcTcZc1cUc2c7bVc3cYc)b4cWcXc5c7b2c6c1cZc6c7c1c8c3c)b9c4cXc9cXc0c!c#c$c!c$c7c!c7c6c%c7b5c&c8c)b(c9c0c(c0c)c*c#c!c+c7b%c-c)c:c-c(c)c;c&c)b/c#c*c/c=c#c>c7b+c?c;c)b@c-c:c@c:c[c]c7b>c^c=c/c^c[c=c a_c,c a,c.c a.c{c a{c|c a|c}c a}c~c a~c`c a`cad aadbd abdcd acddd added a7b]c aedfd afdgd a]c_chd?c)bhdidjdhdjdkdhdkdldhdldmdhdmdndhdndodhdodpdhdpdqdhdqdrdhdrdsdhdsdtdhdtdudhdudvdhdvdwdhdwdxdhdxd?cyd agdzdidhdAd aydBdzdhdCd aAdDdBdhdEd aCdFdDdhdGd aEdHdFdhdId aGdJdHdhdKd aIdLdJdhdMd aKdNdLdhdOd aMdPdNdhdQd[c^cQd@c[cRd@cQdRdSdTdRdTd@cUd^cVdUdQd^cWdSdRdXdVdYdXdUdVdZd1dSdZdSdWd2dYd3d2dXdYd4d5d6d4d6d1d4d1dZd7d2d3d7d3d8d7d8d9d0d5d4d!d7d9d#d$d%d#d%d5d#d5d0d&d9d(d&d!d9d)d$d#d*d(d+d*d&d(d-d:d$d-d$d)d;d+d/d;d*d+d=d:d-d=d>d:d?d/d@d?d@d[d?d;d/d]d>d=d]d^d>d_d[d,d_d?d[d.d^d]d.d{d^d|d_d,d}d{d.d}d~d{d`d|d,d`d,daebecedebede~dbe~d}dee`daeeeaefegehecegecebeieeefeiefejeiejekelehegemekenemeiekeoeheleoepeheqemeneqeneresepeoesetepeueqerevetesevewetexeuerexereyezeAewezeweveBexeyeBeyeCeDeEeAeDeAezeFeBeCeFeCeGeHeEeDeHeIeEeJeGeKeJeKeLeJeFeGeMeNeOeMeOeIeMeIeHePeJeLeQeNeMeReLeSeRePeLeTeUeNeTeNeQeVeReSeVeSeWeXeYeUeXeUeTeZeWe1eZeVeWe2e3eYe2eYeXe4e1e5e4eZe1e6e3e2e6e7e3e8e5e9e8e9e0e8e4e5e!e#e7e!e7e6e$e8e0e$e0e%e&e#e!e&e(e)e&e)e#e*e%e+e*e$e%e-e(e&e:e+e;e:e*e+e/e=e(e/e(e-e>e;e?e>e:e;e@e[e=e@e=e/e]e>e?e^e_e,e^e,e[e^e[e@e.e]e?e.e?e{e|e_e^e}e{e~e}e~e`e}e.e{eaf_e|eafbf_ecf}e`edfbfafdfefbfffcf`eff`egfffgfhfifjfefifefdfkfffhflfOdmflfmfjflfjfifnfhfPdnfkfhfof aOdofOdlf bpfqf bqfrf brfsf bsftf btfuf bofvf bvfwf bwfxf bxfyf byfzf bzfAf bAfBf bBfCf bCfDf bDfEf bEfFf bFfGf bGfHf bHfIf bIfJf bJfKf bKfLf b aof bLfMf bMfpfNfufOfNfOfPfNfPfQfNfnfPdNfQfRfNfRfSfNfSfTfNfTfUfNfUfVfNfVfWfNfWfXfNfXfYfNf bufNfYfZfNfZf1fNf1f2fNf2f3fNf3f4fNfPdhdNf4f5fNf5f6fNf6f7fNf7f8fNf8f9fNf9f0fNf0f!fNf!f#fNf#fnfNf$f b b$f c%f7b a%f a d&f(f)f&f*f(f(f+f)f&f-f*f+f:f)f&f;f-f:f/f)f&f=f;f/f>f)f&f?f=f>f@f)f&f[f?f@f]f)f&f^f[f]f_f)f&f,f^f_f.f)f&f{f,f.f|f)f&f}f{f|f~f)f&f`f}f~fag)f&fbg`fagcg)f&fdgbgcgeg)f&ffgdgeggg)f&fhgfgggig)f&fjghgigkg)f&flgjgkgmg)f&fnglgmgog)f&fpgngogqg)f&frgpgqgsg)f&ftgrgsgug)f&fvgtgugwg)f&fxgvgwgyg)f&fzgxgygAg)f&fBgzgCgDgEgFgGgHgIgJgCgCgJgDgKgLgFgFgLgGgEgMgNgDgMgEgGgOgHgHgOgPgQgRgKgKgRgLgIgSgJgMgTgNgNgTgUgPgVgWgOgVgPgXgYgIgIgYgSgQgZgRgVg1gWgWg1g2gUg3g4gTg3gUg5g6gXgXg6gYg7g8g9g9g8gQgQg8gZg4g0g!g3g0g4g2g#g$g1g#g2g%g&g(g(g&g5g5g&g6g7g)g8g$g*g+g#g*g$g!g-g:g0g-g!g%g;g&g/g=g7g7g=g)g-g>g:g:g>g?g+g@g[g*g@g+g%g]g;g&f]gBgBg]g%g^g_g,g,g_g/g/g_g=g?g.g{g>g.g?gAg|g)f@g|g[g[g|gAg}g~g^g^g~g_g{g`gah.g`g{g}gbh~g`gchahahchdhehfhghghfh}g}gfhbhchhhdhdhhhihjhkhehehkhfhihlhmhhhlhihjhnhkhlhohmhmhohphjhqhnhrhqhjhohshphphshthrhuhqhvhuhwhwhuhrhshxhththxhyhyhxhzhvhAhuhxhBhzhvhChAhDhChvhEh%fFhFh%fGhGh%fHhHh%fIhIh%fJhJh%fKh&f%f]gKh%fLhLh%fMh]g%fEhNhOhPhPhOhQhQhOhRhRhOhShShOhThThOhUhUhOhVhVhOh|g|gOh)fBhWhzhzhWhXhNhYhOhDhZhCh1hZhDh%f2hMhYh3hOhWh4hXhXh4h5h%f6h2h1h7hZh8h7h9h9h7h1h3h0hOh4h!h5h5h!h#h8h$h7h%f%h6h!h&h#h#h&h(h0h)hOh8h*h$h+h*h8h%f-h%h)h:hOh&h;h(h(h;h/h+h=h*h>h=h?h?h=h+h%f@h-h/h[h]h;h[h/h:h^hOh%f_h@h>h,h=h[h.h]h]h.h{h^h|hOh>h}h,h~h}h>h%f`h_h|haiOh.hbi{h{hbici~hdi}heidi~h%ffi`haigiOhbihicicihiiieijidikijiei%flifigimiOhhiniiiiinioioinipikiqijiriqiki%fsilinitipipitiuimiviOhriwiqixiwiri%fyisiviziOhtiAiui%fBiyixiCiwiDiCixiziEiOhAiFiuiuiFiGiHiIiJiJiIiDiDiIiCi%fKiBiEiLiOhFiMiGiGiMiNiHiOiIi%fPiKiNiQiRiMiQiNiLiSiOhHiTiOiUiTiHi%fViPiSiWiOhQiXiRiRiXiYi%fZiViUi1iTiYi1iUi2i d3i3i d4i4i d5i5i d6i6i d7i7i d8i8i d9i9i d0i0i d!i!i d#i#i d$i$i d%i%f dZi%i d&i&i d(iZi d2iWi)iOh*i)i+i+i)i-i-i)i:i:i)i;i;i)i/i/i)i=i=i)i>i>i)i?i?i)i@i@i)i[i[i)i]i]i)i^i^i)i_i_i)i,i,i)i.i.i)iWi d{i(i*i|i)i d}i{i|i~i)i d`i}i~iaj)i dbj`iajcj)i ddjbjcjej)i dfjdjejgj)i dhjfjgjij)i djjhjijkj)i dljjjkjmj)iYinj1iXinjYiXiojnjpjojqjqjojXi1irjsjnjrj1ipjtjojsjujvjrjujsjwjxjpjpjxjtjvjyjzjujyjvjAjBjCjCjBjwjwjBjxjyjDjzjzjDjEjEjDjFjAjGjBjDjHjFjIjJjKjKjJjAjAjJjGjFjLjMjHjLjFjIjNjJjMjOjPjLjOjMjQjRjIjIjRjNjPjSjTjOjSjPjQjUjRjVjUjQjTjWjXjXjWjYjSjWjTjVjZjUj1jZjVjYj2j3jWj2jYj1j4jZj5j4j1j2j6j3j5j7j4j8j7j5j6j9j3j3j9j0j!j#j$j$j#j8j8j#j7j9j%j0j0j%j&j(j)j!j!j)j#j%j*j&j&j*j+j+j*j-j(j:j)j-j;j/j*j;j-j(j=j:j>j=j(j;j?j/j/j?j@j>j[j=j]j[j>j?j^j@j]j_j[j,j_j]j^j.j@j@j.j{j|j}j,j,j}j_j.j~j{j{j~j`jakbk|j|jbk}j~jck`j`jckdkakekbkfkekakdkgkhkhkgkikckgkdkjkkklklkkkfkfkkkekgkmkikjknkkkikokpkmkokikqkrkjkjkrknkokskpkpksktkukvkqkqkvkrktkwkxkskwktkykzkukukzkvkxkAkBkwkAkxkykCkzkDkCkykBkEkFkFkEkGkAkEkBkHkIkDkDkIkCkEkJkGkGkJkKkHkLkIkMkLkNkNkLkHkKkOkPkJkOkKkMkQkLkPkRkSkOkRkPkTkUkMkMkUkQkSkVkWkRkVkSkXkYkTkTkYkUkVkZkWk1k2k3k3k2kXkXk2kYkZk4kWkWk4k5k1k6k2k5k7k8k8k7k9k4k7k5k1k0k6k!k0k1k7k#k9k!k$k0k%k$k!k#k&k9k9k&k(k(k&k)k*k+k%k%k+k$k&k-k)klj:k;k;k:k*k*k:k+k)k/kmj-k/k)k d=kljlj=k:k>k c?k?k c@k@k c[k[k c]k]k c^k=k c_k_k c,k,k c.k.k c{k{k c|k|k c}k}k c~k~k c`k`k calal cblbl cclcl cdldl celel cflfl cglgl chlhl cil d c=kil cjljl c>k^k$fklkl$fllll$fml/k$fmjml$fnlnl$folol$fplpl$fqlql$frlrl$fslsl$ftltl$ful c$f^kul$fvlvl$fwlwl$fxlxl$fylyl$fzlmj$f)izl$fAlAl$fBlBl$fClCl$fDlDl$fElEl$fFlFl$fGlGl$fHlHl$f/kNfhd)iNf)i$f f7b%f f%f&f)ihd)b)i)bOh)f g f)f f&f)b g)f)b)fOh]b5bCh]bChZh}bZh7h}b7h$h}b]bZhdc}b$hic$h*hic*h=hicdc$hocic=hwc=h,hwcoc=hAc,h}hAc}hdiAcwc,hGcAcdiMcdijiMcGcdiTcjiqiTcMcjiZcTcqiZcqiwiZcwiCi6cZcCi!c6cCi!cCiIi*c!cIi*cIiOi/cOiTi/cTi1i/c*cOi^c/c1iVd1isjVd^c1iYdsjvjYdvjzjYdVdsj3dYdzj8dzjEj8d3dzj9dEjFj9d8dEj(dFjMj(d9dFj+dMjPj+d(dMj/dPjTj/d+dPj@dTjXj@d/dTj[dXjYj[d@dXj,dYj3j,d[dYjae3j0jae0j&jae,d3jfeae&jje&j+jjefe&jke+j-jkeje+jne-j/jneke-jre/j@jrene/jye@j{jyere@jCe{j`jCeye{jGe`jdkGeCe`jKedkhkKehkikKeGedkLeKeikLeikpkSeLepkWeSepkWepktk1eWetk1etkxk5e1exk5exkBk9e5eBk9eBkFk0e9eFk0eFkGk%e0eGk%eGkKk+e%eKk+eKkPk+ePkSk;e+eSk?eSkWk?e;eSk{eWk5k{e?eWk~e5k8k~e8k9k~e{e5k`e~e9kgf9k(kgf(k)kgf`e9khfgf)kPd)kmjPdmjkjPdhf)kNdPdkjLdkjijLdNdkjJdijgjJdgjejJdLdijHdJdejFdejcjFdHdejDdcjajDdFdcjBdaj~iBdDdajzdBd~izd~i|izd|i*iidzd*iid*i+ijdid+ikdjd+ikd+i-ikd-i:ildkd:ild:i;imdld;imd;i/indmd/iodnd/iod/i=iod=i>ipdod>iqdpd>iqd>i?irdqd?ird?i@ird@i[isdrd[itdsd[itd[i]iudtd]iud]i^ivdud^ivd^i_ivd_i,iwdvd,ixdwd,ixd,i.i?cxd.i?c.iWi?cWiSi;c?cSi&c;cSi&cSiLi8c&cLi8cLiEi3cEizi3c8cEi3cziviYc3cviPcvimiPcYcviJcmigiJcPcmiDcgiaiDcJcgizcDcaizcai|huczc|huc|h^hlcuc^hlc^h:hhclc:hhc:h)hhc)h0hachc0h,bac0h,b0h3h[b,b3h[b3hYh*b[bYh*bYhNh+b*bNh+bNhPh-b+bPh-bPhQh:b-bQh:bQhRh;b:bRh;bRhSh/bShTh/b;bSh=bThUh=b/bTh>bUhVh>b=bUhybVh|gyb>bVhqb|g@gqb@g*gqbyb|ghbqb*gbb*g#gbbhb*g ]#g1g ]bb#g =1gVg = ]1g )VgOg ) =Vg 8OgGg 8 )Og $GgLg $ 8Gg + $Lg +LgRg [ +Rg [RgZg | [Zg |Zg8ggb |8ggb8g)gmbgb)gmb)g=gtb=g_gtbmb=gzb_g~gzbtb_gDb~gbhDbbhfhDbzb~gGbDbfhLbfhkhLbGbfhPbkhnhPbLbkhSbnhqhSbPbnhWbqhuhWbSbqh3buhAh3bAhCh3bWbuh5b3bCh N Ljg Njglg Plgng Pngpg P Nlg R Ppg Tpgrg Trgtg T Rpg V Ttg Xtgvg X Vtg Zvgxg Zxgzg Z Xvg 2 Zzg 4zgBg 4 2zgebBg%geb 4Bgfbeb%gfb%g(gfb(g5g {fb5g @ {5g @5gXg # @Xg #XgIg 6IgCg 6CgEg 6 #Ig 7 6Eg (EgNg ( 7Eg /NgUg /Ug4g / (Ng , /4gab4g!gab ,4gkb!g:gkbab!gpb:g?gpbkb:gxb?g{gxbpb?gCb{gahCbxb{gFbahdhFbCbahKbdhihKbFbdhObihmhObKbihRbmhphRbphthRbObmhVbRbth1bthyh1bVbth2byhzh2b1byh@bzhXh@b2bzh{bXh5h{b@bXhcc5h#hcc{b5hgc#h(hgccc#hnc(h/hncgc(htc/h]htc]h{htcnc/hyctc{hyc{hciFcycciLcFcciLcciiiRcLciiRciioiScRcoiScoipiXcScpiXcpiui0cXcui0cuiGi)c0cGi)cGiNi:c)cNi:cNiRi:cRiYi[c:cYi=cYiUi=c[cYi#cUiHi#c=cUi$cHiJi$cJiDi$c#cHi7c$cDi1cDixi1cxiri1c7cDiUc1criNcrikiNckieiNcUcriHcNceiBcei~hBcHceipc~h>hpc>h?hpcBc~hqcpc?hjc?h+hjcqc?h~b+h8h~bjc+h`b8h9h`b~b8h^b`b9h^b9h1h^b1hDh6b^bDh6bDhvhXb6bvhYbXbvhYbvhwhYbwhrhTbYbrhTbrhjhMbTbjhMbjhehHbMbehIbHbehIbehghIbgh}gAbIb}gubAb}gub}g^gvbub^gvb^g,gvb,g/gnbvb/g }nb/g }/g7g ~ }7g ~7g9g - ~9g -9gQg -QgKg % -Kg 9 %Kg 9KgFg 0 9Fg 0FgHg 0HgPg * 0Pg > *Pg >PgWg ^ >Wg ^Wg2gcb2g$gcb ^2gcb$g+gibcb+grb+g[grbib+g 3[gAg 3rb[g 1Agyg 1 3Ag Y 1yg Yygwg W Ywg Wwgug U Wug Uugsg S Usg Ssgqg Sqgog Q Sog O Qog Oogmg M Omg Mmgkg K Mkg Kkgig I Kig Iiggg G Igg Gggeg E Geg Eegcg C Ecg Ccgag Aag~f A Cag y~f|f y A~f w|f.f w y|f u.f_f u w.f s_f]f s]f@f s u_f q s@f o@f>f o q@f m>f/f m o>f k/f:f k m/f i:f+f i k:f e+f(f e i+f h(f*f h e(f j h*f j*f-f l j-f l-f;f n l;f n;f=f p n=f p=f?f r p?f r?f[f t[f^f t r[f v^f,f v t^f x,f{f x{f}f x v,f z x}f B}f`f B z}f D`fbg D B`f Fbgdg F Dbg Hdgfg H Fdg Jfghg Jhgjg J Hfg L Jjgseoe=jse=j[jve[j_jve_j}jvese[jzeve}jDe}jbkDebkekDeze}jHeDeekMeekkkMeHeekQekknkQenkrkQeMekkTeQerkXerkvkXeTerk2evkzk2eXevk6e2ezk6ezkCk6eCkIk!e6eIk&e!eIk&eIkLk-e&eLk-eLkQk/eQkUk/eUkYk/e-eQk@e/eYk^eYk2k^e@eYk|e2k6k|e6k0k|e^e2kaf|e0kdf0k$kdfaf0kif$k+kifdf$klf+k:klfif+kof:k=koflf:kvf=k_kvfof=kwf_k,kwfvf_kxf,k.kxfwf,kyf.k{kyfxf.kzf{k|kzf|k}kzfyf{kAfzf}kBf}k~kBfAf}kCf~k`kCfBf~kDf`kalDfCf`kEfalblEfDfalFfblclFfEfblGfcldlGfFfclHfdlelHfGfdlIfelflIfflglIfHfelJfIfglJfglhlKfJfhlLfKfhlLfhlilMfLfilMfiljlpfMfjlpfjl>kqfpf>kqf>k?krfqf?krf?k@ksfrf@ksf@k[ktfsf[ktf[k]ktf]k^kuftf^kOf^kklOfuf^kPfklllPfOfklQfllmlQfmlnlQfPfllRfQfnlSfnlolSfolplSfRfnlTfSfplUfplqlUfqlrlUfTfplVfUfrlWfrlslWfVfrlXfsltlXftlulXfWfslYfXfulZfulvlZfYful1fvlwl1fZfvl2fwlxl2f1fwl3f2fxl3fxlyl3fylzl4f3fzl4fzlAl5f4fAl6f5fAl6fAlBl6fBlCl7f6fCl7fClDl8f7fDl8fDlEl9f8fEl0f9fEl0fElFl0fFlGl!f0fGl#f!fGl#fGlHlnf#fHlnfHl/knf/k-kkfnf-kffkf-kff-k&kcfff&kcf&k#k}ecf#k}e#k7k}e7k4k.e}e4k]e.e4k]e4kZk>e]eZk>eZkVk>eVkRk:e>eRk*e:eRk*eRkOk$e*eOk$eOkJk8eJkEk8e$eJk8eEkAk4e8eAkZeAkwkZe4eAkVewkskVeZewkReskokReVeskPeReokPeokmkJePemkJemkgkFeJegkFegkckBeFeckBeck~jBe~j.jxeBe.juexe.jue.j^jqeue^jqe^j?jmeqe?jme?j;jieme;jie;j*jeeie*jee*j%j`dee%j`d%j9j|d`d9j|d9j6j_d6j2j_d|d6j?d2jWj?d_d2j;dWjSj;d?dWj*dSjOj*d;dSj&dOjLj&dLjHj&d*dOj!d&dHj7dHjDj7d!dHj2dDjyj2d7dDjXdyjujXd2dyjUdujrjUdXdujQdrjnjQdUdrjRdnjojRdQdnjWdRdojWdojtjZdWdtjZdtjxj4dZdxj4dxjBj0d4dBj0dBjGj#d0dGj#dGjJj)dJjNj)d#dJj-dNjRj-d)dNj=dRjUj=dUjZj=d-dRj]d=dZj.dZj4j.d]dZj}d4j7j}d.d4jbe7j#jbe}d7jge#j)jgebe#jle)j:jle:j=jlege)joele=j_b(bMh_bMh2h|b2h6h|b6h%h|b_b2hec|b%hkc%h-hkc-h@hkcec%hrckc@hvc@h_hvcrc@hCc_h`hCc`hfiCcvc_hIcCcfiOcfiliOcIcfiVclisiVcOcli2cVcsi2csiyi2cyiBi5c2cBi%c5cBi%cBiKi+c%cKi+cKiPi>cPiVi>cViZi>c+cPi]c>cZi_cZi2i_c]cZi,c2i3i,c3i4i,c_c2i.c,c4i{c4i5i{c.c4i|c5i6i|c{c5i}c6i7i}c|c6i~c7i8i~c}c7i`c8i9i`c~c8iad9i0iad`c9ibd0i!ibdad0icd!i#icdbd!idd#i$idd$i%iddcd#ieddd%ifd%i&ifded%igd&i(igdfd&iyd(i{iydgd(iAd{i}iAdyd{iCd}i`iCdAd}iEd`ibjEdCd`iGdbjdjGdEdbjIddjfjIdfjhjIdGddjKdIdhjKdhjjjMdKdjjOdMdjjOdjjljmfOdljmflj;kjfmf;kjf;k*kefjf*kef*k%kbfef%kbf%k!k_ebf!k_e!k1k,e_e1k,e1k3k,e3kXk[e,eXk=eXkTk=e[eXk(eTkMk(e=eTk)eMkNk)eNkHk)e(eMk#e)eHk7eHkDk7eDkyk7e#eHk3e7eykYeykukYeukqkYe3eykUeYeqkNeqkjkNeUeqkOejklkOelkfkOeNejkIeOefkEefkakEeIefkAeak|jAeEeakwe|j,jweAe|jtewe,jte,j]jte]j>jpete>jpe>j(jhepe(jcehe(jce(j!jce!j$jdece$jde$j8j~dde8j~d8j5j{d~d5j^d{d5j^d5j1j^d1jVj>d^dVj:d>dVj:dVjQj$d:dQj$dQjIj$dIjKj%d$dKj5d%dKj5dKjAj6d5dAj6dAjCj1d6dCj1dCjwj1dwjpjSd1dpjTdSdpjTdpjqj@cTdqj@cqjXi@cXiQi-c@cQi(c-cQi(cQiMi9c(cMi9cMiFi4cFiAi4c9cFi4cAitiWc4ctiQctiniQcWctiKcnihiKcQcniEchibiEcKchixcEcbixcbi.hscxc.hsc.h[hmcsc[hmc[h;hfcmc;hfc;h&hfc&h!hbcfc!h.bbc!h.b!h4h?b.b4h?b4hWh4b?bWh4bWhBhZb4bBhZbBhxhUbZbxhUbxhshQbUbshQbshohNbQbohNbohlhJblhhhJbNblhEbhhchEbJbhhBbch`gBbEbchwb`g.gwbBb`gob.g>gob>g-gobwb.gjbob-g `-g0g `jb-g _0g3g _ `0g ;3gTg ; _3g &TgMg & ;Tg 5MgDg 5 &Mg !DgJg ! 5Dg : !Jg :JgSg ? :Sg ?SgYg . ?Yg .Yg6gdb .6gdb6g&glbdb&glb&g;gsb;g]gsblb;g8b]gEh8bsb]g9bEhFh9bFhGh9b8bEh0b9bGh!bGhHh!b0bGh#bHhIh#b!bHh$bIhJh$b#bIh%bJhKh%b$bJh&bKhLh&bLhMh&b%bKh(b&bMh","wires":["1abcabdebdebcabc","1afdfadfedabdebdbedbadefdafd","1ghdijdkldmndopdqrdstduvdwxdyzdABdCDdEFdGHdIJdKLdMMdLKdJIdHGdFEdDCdBAdzydxwdvudtsdrqdpodnmdlkdjidhgdNidOkdPmdQodRqdSsdTudUwdVydWAdXCdYEdZGd1Id2Kd3Md4Ld5Jd6Hd7Fd8Dd9Bd0zd!xd#vd$td%rd&pd(nd)ld*jd+hd*Nd)Od(Pd&Qd%Rd$Sd#Td!Ud0Vd9Wd8Xd7Yd6Zd51d42d33d24d15dZ6dY7dX8dW9dV0dU!dT#dS$dR%dQ&dP(dO)dN*dh+dj*dl)dn(dp&dr%dt$dv#dx!dz0dB9dD8dF7dH6dJ5dL4dM3dK2dI1dGZdEYdCXdAWdyVdwUduTdsSdqRdoQdmPdkOdiNdghd","2 - h d : j d ; l d / n d = p d > r d ? t d @ v d [ x d ] z d ^ B d _ D d , F d . H d { J d | L d } M d ~ K d ` I dab G dbb E dcb C ddb A deb y dfb w dgb u dhb s dib q djb o dkb m dlb k dmb i dnb g dob i dpb k dqb m drb o dsb q dtb s dub u dvb w dwb y dxb A dyb C dzb E dAb G dBb I dCb K dDb M dEb L dFb J dGb H dHb F dIb D dJb B dKb z dLb x dMb v dNb t dOb r dPb p dQb n dRb l dSb j dTb h dSb N dRb O dQb P dPb Q dOb R dNb S dMb T dLb U dKb V dJb W dIb X dHb Y dGb Z dFb 1 dEb 2 dDb 3 dCb 4 dBb 5 dAb 6 dzb 7 dyb 8 dxb 9 dwb 0 dvb ! dub # dtb $ dsb % drb & dqb ( dpb ) dob * dnb + dmb * dlb ) dkb ( djb & dib % dhb $ dgb # dfb ! deb 0 ddb 9 dcb 8 dbb 7 dab 6 d ` 5 d ~ 4 d } 3 d | 2 d { 1 d . Z d , Y d _ X d ^ W d ] V d [ U d @ T d ? S d > R d = Q d / P d ; O d : N d - h d","2 gnb d imb d klb d mkb d ojb d qib d shb d ugb d wfb d yeb d Adb d Ccb d Ebb d Gab d I ` d K ~ d M } d L | d J { d H . d F , d D _ d B ^ d z ] d x [ d v @ d t ? d r > d p = d n / d l ; d j : d h - d N : d O ; d P / d Q = d R > d S ? d T @ d U [ d V ] d W ^ d X _ d Y , d Z . d 1 { d 2 | d 3 } d 4 ~ d 5 ` d 6ab d 7bb d 8cb d 9db d 0eb d !fb d #gb d $hb d %ib d &jb d (kb d )lb d *mb d +nb d *ob d )pb d (qb d &rb d %sb d $tb d #ub d !vb d 0wb d 9xb d 8yb d 7zb d 6Ab d 5Bb d 4Cb d 3Db d 2Eb d 1Fb d ZGb d YHb d XIb d WJb d VKb d ULb d TMb d SNb d ROb d QPb d PQb d ORb d NSb d hTb d jSb d lRb d nQb d pPb d rOb d tNb d vMb d xLb d zKb d BJb d DIb d FHb d HGb d JFb d LEb d MDb d KCb d IBb d GAb d Ezb d Cyb d Axb d ywb d wvb d uub d stb d qsb d orb d mqb d kpb d iob d gnb d","2 -nb d :mb d ;lb d /kb d =jb d >ib d ?hb d @gb d [fb d ]eb d ^db d _cb d ,bb d .ab d { ` d | ~ d } } d ~ | d ` { dab . dbb , dcb _ ddb ^ deb ] dfb [ dgb @ dhb ? dib > djb = dkb / dlb ; dmb : dnb - dob : dpb ; dqb / drb = dsb > dtb ? dub @ dvb [ dwb ] dxb ^ dyb _ dzb , dAb . dBb { dCb | dDb } dEb ~ dFb ` dGbab dHbbb dIbcb dJbdb dKbeb dLbfb dMbgb dNbhb dObib dPbjb dQbkb dRblb dSbmb dTbnb dSbob dRbpb dQbqb dPbrb dObsb dNbtb dMbub dLbvb dKbwb dJbxb dIbyb dHbzb dGbAb dFbBb dEbCb dDbDb dCbEb dBbFb dAbGb dzbHb dybIb dxbJb dwbKb dvbLb dubMb dtbNb dsbOb drbPb dqbQb dpbRb dobSb dnbTb dmbSb dlbRb dkbQb djbPb dibOb dhbNb dgbMb dfbLb debKb ddbJb dcbIb dbbHb dabGb d `Fb d ~Eb d }Db d |Cb d {Bb d .Ab d ,zb d _yb d ^xb d ]wb d [vb d @ub d ?tb d >sb d =rb d /qb d ;pb d :ob d -nb d","1abcabdfedfecabc","1ebcebdbedbecebc","1facafcefcbacbecebcabcfecfac","1ghciNckOcmPcoQcqRcsScuTcwUcyVcAWcCXcEYcGZcI1cK2cM3cL4cJ5cH6cF7cD8cB9cz0cx!cv#ct$cr%cp&cn(cl)cj*ch+cN*cO)cP(cQ&cR%cS$cT#cU!cV0cW9cX8cY7cZ6c15c24c33c42c51c6Zc7Yc8Xc9Wc0Vc!Uc#Tc$Sc%Rc&Qc(Pc)Oc*Nc+hc*jc)lc(nc&pc%rc$tc#vc!xc0zc9Bc8Dc7Fc6Hc5Jc4Lc3Mc2Kc1IcZGcYEcXCcWAcVycUwcTucSscRqcQocPmcOkcNichgcjiclkcnmcpocrqctscvucxwczycBAcDCcFEcHGcJIcLKcMMcKLcIJcGHcEFcCDcABcyzcwxcuvcstcqrcopcmncklcijcghc","2 - h c : N c ; O c / P c = Q c > R c ? S c @ T c [ U c ] V c ^ W c _ X c , Y c . Z c { 1 c | 2 c } 3 c ~ 4 c ` 5 cab 6 cbb 7 ccb 8 cdb 9 ceb 0 cfb ! cgb # chb $ cib % cjb & ckb ( clb ) cmb * cnb + cob * cpb ) cqb ( crb & csb % ctb $ cub # cvb ! cwb 0 cxb 9 cyb 8 czb 7 cAb 6 cBb 5 cCb 4 cDb 3 cEb 2 cFb 1 cGb Z cHb Y cIb X cJb W cKb V cLb U cMb T cNb S cOb R cPb Q cQb P cRb O cSb N cTb h cSb j cRb l cQb n cPb p cOb r cNb t cMb v cLb x cKb z cJb B cIb D cHb F cGb H cFb J cEb L cDb M cCb K cBb I cAb G czb E cyb C cxb A cwb y cvb w cub u ctb s csb q crb o cqb m cpb k cob i cnb g cmb i clb k ckb m cjb o cib q chb s cgb u cfb w ceb y cdb A ccb C cbb E cab G c ` I c ~ K c } M c | L c { J c . H c , F c _ D c ^ B c ] z c [ x c @ v c ? t c > r c = p c / n c ; l c : j c - h c","2 gnb c iob c kpb c mqb c orb c qsb c stb c uub c wvb c ywb c Axb c Cyb c Ezb c GAb c IBb c KCb c MDb c LEb c JFb c HGb c FHb c DIb c BJb c zKb c xLb c vMb c tNb c rOb c pPb c nQb c lRb c jSb c hTb c NSb c ORb c PQb c QPb c ROb c SNb c TMb c ULb c VKb c WJb c XIb c YHb c ZGb c 1Fb c 2Eb c 3Db c 4Cb c 5Bb c 6Ab c 7zb c 8yb c 9xb c 0wb c !vb c #ub c $tb c %sb c &rb c (qb c )pb c *ob c +nb c *mb c )lb c (kb c &jb c %ib c $hb c #gb c !fb c 0eb c 9db c 8cb c 7bb c 6ab c 5 ` c 4 ~ c 3 } c 2 | c 1 { c Z . c Y , c X _ c W ^ c V ] c U [ c T @ c S ? c R > c Q = c P / c O ; c N : c h - c j : c l ; c n / c p = c r > c t ? c v @ c x [ c z ] c B ^ c D _ c F , c H . c J { c L | c M } c K ~ c I ` c Gab c Ebb c Ccb c Adb c yeb c wfb c ugb c shb c qib c ojb c mkb c klb c imb c gnb c","2 -nb c :ob c ;pb c /qb c =rb c >sb c ?tb c @ub c [vb c ]wb c ^xb c _yb c ,zb c .Ab c {Bb c |Cb c }Db c ~Eb c `Fb cabGb cbbHb ccbIb cdbJb cebKb cfbLb cgbMb chbNb cibOb cjbPb ckbQb clbRb cmbSb cnbTb cobSb cpbRb cqbQb crbPb csbOb ctbNb cubMb cvbLb cwbKb cxbJb cybIb czbHb cAbGb cBbFb cCbEb cDbDb cEbCb cFbBb cGbAb cHbzb cIbyb cJbxb cKbwb cLbvb cMbub cNbtb cObsb cPbrb cQbqb cRbpb cSbob cTbnb cSbmb cRblb cQbkb cPbjb cObib cNbhb cMbgb cLbfb cKbeb cJbdb cIbcb cHbbb cGbab cFb ` cEb ~ cDb } cCb | cBb { cAb . czb , cyb _ cxb ^ cwb ] cvb [ cub @ ctb ? csb > crb = cqb / cpb ; cob : cnb - cmb : clb ; ckb / cjb = cib > chb ? cgb @ cfb [ ceb ] cdb ^ ccb _ cbb , cab . c ` { c ~ | c } } c | ~ c { ` c .ab c ,bb c _cb c ^db c ]eb c [fb c @gb c ?hb c >ib c =jb c /kb c ;lb c :mb c -nb c","1facfadfedfecfac","1becbedbadbacbec","1afcafdfadfacafc","1bacbadefdefcbac","1efcefdafdafcefc","1ghdijdkldmndopdqrdstduvdwxdyzdABdCDdEFdGHdIJdKLdMMdLKdJIdHGdFEdDCdBAdzydxwdvudtsdrqdpodnmdlkdjidhgdNidOkdPmdQodRqdSsdTudUwdVydWAdXCdYEdZGd1Id2Kd3Md4Ld5Jd6Hd7Fd8Dd9Bd0zd!xd#vd$td%rd&pd(nd)ld*jd+hd*Nd)Od(Pd&Qd%Rd$Sd#Td!Ud0Vd9Wd8Xd7Yd6Zd51d42d33d24d15dZ6dY7dX8dW9dV0dU!dT#dS$dR%dQ&dP(dO)dN*dh+dj*dl)dn(dp&dr%dt$dv#dx!dz0dB9dD8dF7dH6dJ5dL4dM3dK2dI1dGZdEYdCXdAWdyVdwUduTdsSdqRdoQdmPdkOdiNdghcghciNckOcmPcoQcqRcsScuTcwUcyVcAWcCXcEYcGZcI1cK2cM3cL4cJ5cH6cF7cD8cB9cz0cx!cv#ct$cr%cp&cn(cl)cj*ch+cN*cO)cP(cQ&cR%cS$cT#cU!cV0cW9cX8cY7cZ6c15c24c33c42c51c6Zc7Yc8Xc9Wc0Vc!Uc#Tc$Sc%Rc&Qc(Pc)Oc*Nc+hc*jc)lc(nc&pc%rc$tc#vc!xc0zc9Bc8Dc7Fc6Hc5Jc4Lc3Mc2Kc1IcZGcYEcXCcWAcVycUwcTucSscRqcQocPmcOkcNichgcjiclkcnmcpocrqctscvucxwczycBAcDCcFEcHGcJIcLKcMMcKLcIJcGHcEFcCDcABcyzcwxcuvcstcqrcopcmncklcijcghc","2 - h d : j d ; l d / n d = p d > r d ? t d @ v d [ x d ] z d ^ B d _ D d , F d . H d { J d | L d } M d ~ K d ` I dab G dbb E dcb C ddb A deb y dfb w dgb u dhb s dib q djb o dkb m dlb k dmb i dnb g dob i dpb k dqb m drb o dsb q dtb s dub u dvb w dwb y dxb A dyb C dzb E dAb G dBb I dCb K dDb M dEb L dFb J dGb H dHb F dIb D dJb B dKb z dLb x dMb v dNb t dOb r dPb p dQb n dRb l dSb j dTb h dSb N dRb O dQb P dPb Q dOb R dNb S dMb T dLb U dKb V dJb W dIb X dHb Y dGb Z dFb 1 dEb 2 dDb 3 dCb 4 dBb 5 dAb 6 dzb 7 dyb 8 dxb 9 dwb 0 dvb ! dub # dtb $ dsb % drb & dqb ( dpb ) dob * dnb + dmb * dlb ) dkb ( djb & dib % dhb $ dgb # dfb ! deb 0 ddb 9 dcb 8 dbb 7 dab 6 d ` 5 d ~ 4 d } 3 d | 2 d { 1 d . Z d , Y d _ X d ^ W d ] V d [ U d @ T d ? S d > R d = Q d / P d ; O d : N d - h c - h c : N c ; O c / P c = Q c > R c ? S c @ T c [ U c ] V c ^ W c _ X c , Y c . Z c { 1 c | 2 c } 3 c ~ 4 c ` 5 cab 6 cbb 7 ccb 8 cdb 9 ceb 0 cfb ! cgb # chb $ cib % cjb & ckb ( clb ) cmb * cnb + cob * cpb ) cqb ( crb & csb % ctb $ cub # cvb ! cwb 0 cxb 9 cyb 8 czb 7 cAb 6 cBb 5 cCb 4 cDb 3 cEb 2 cFb 1 cGb Z cHb Y cIb X cJb W cKb V cLb U cMb T cNb S cOb R cPb Q cQb P cRb O cSb N cTb h cSb j cRb l cQb n cPb p cOb r cNb t cMb v cLb x cKb z cJb B cIb D cHb F cGb H cFb J cEb L cDb M cCb K cBb I cAb G czb E cyb C cxb A cwb y cvb w cub u ctb s csb q crb o cqb m cpb k cob i cnb g cmb i clb k ckb m cjb o cib q chb s cgb u cfb w ceb y cdb A ccb C cbb E cab G c ` I c ~ K c } M c | L c { J c . H c , F c _ D c ^ B c ] z c [ x c @ v c ? t c > r c = p c / n c ; l c : j c - h c","2 gnb d imb d klb d mkb d ojb d qib d shb d ugb d wfb d yeb d Adb d Ccb d Ebb d Gab d I ` d K ~ d M } d L | d J { d H . d F , d D _ d B ^ d z ] d x [ d v @ d t ? d r > d p = d n / d l ; d j : d h - d N : d O ; d P / d Q = d R > d S ? d T @ d U [ d V ] d W ^ d X _ d Y , d Z . d 1 { d 2 | d 3 } d 4 ~ d 5 ` d 6ab d 7bb d 8cb d 9db d 0eb d !fb d #gb d $hb d %ib d &jb d (kb d )lb d *mb d +nb d *ob d )pb d (qb d &rb d %sb d $tb d #ub d !vb d 0wb d 9xb d 8yb d 7zb d 6Ab d 5Bb d 4Cb d 3Db d 2Eb d 1Fb d ZGb d YHb d XIb d WJb d VKb d ULb d TMb d SNb d ROb d QPb d PQb d ORb d NSb d hTb d jSb d lRb d nQb d pPb d rOb d tNb d vMb d xLb d zKb d BJb d DIb d FHb d HGb d JFb d LEb d MDb d KCb d IBb d GAb d Ezb d Cyb d Axb d ywb d wvb d uub d stb d qsb d orb d mqb d kpb d iob d gnb c gnb c iob c kpb c mqb c orb c qsb c stb c uub c wvb c ywb c Axb c Cyb c Ezb c GAb c IBb c KCb c MDb c LEb c JFb c HGb c FHb c DIb c BJb c zKb c xLb c vMb c tNb c rOb c pPb c nQb c lRb c jSb c hTb c NSb c ORb c PQb c QPb c ROb c SNb c TMb c ULb c VKb c WJb c XIb c YHb c ZGb c 1Fb c 2Eb c 3Db c 4Cb c 5Bb c 6Ab c 7zb c 8yb c 9xb c 0wb c !vb c #ub c $tb c %sb c &rb c (qb c )pb c *ob c +nb c *mb c )lb c (kb c &jb c %ib c $hb c #gb c !fb c 0eb c 9db c 8cb c 7bb c 6ab c 5 ` c 4 ~ c 3 } c 2 | c 1 { c Z . c Y , c X _ c W ^ c V ] c U [ c T @ c S ? c R > c Q = c P / c O ; c N : c h - c j : c l ; c n / c p = c r > c t ? c v @ c x [ c z ] c B ^ c D _ c F , c H . c J { c L | c M } c K ~ c I ` c Gab c Ebb c Ccb c Adb c yeb c wfb c ugb c shb c qib c ojb c mkb c klb c imb c gnb c","2 -nb d :mb d ;lb d /kb d =jb d >ib d ?hb d @gb d [fb d ]eb d ^db d _cb d ,bb d .ab d { ` d | ~ d } } d ~ | d ` { dab . dbb , dcb _ ddb ^ deb ] dfb [ dgb @ dhb ? dib > djb = dkb / dlb ; dmb : dnb - dob : dpb ; dqb / drb = dsb > dtb ? dub @ dvb [ dwb ] dxb ^ dyb _ dzb , dAb . dBb { dCb | dDb } dEb ~ dFb ` dGbab dHbbb dIbcb dJbdb dKbeb dLbfb dMbgb dNbhb dObib dPbjb dQbkb dRblb dSbmb dTbnb dSbob dRbpb dQbqb dPbrb dObsb dNbtb dMbub dLbvb dKbwb dJbxb dIbyb dHbzb dGbAb dFbBb dEbCb dDbDb dCbEb dBbFb dAbGb dzbHb dybIb dxbJb dwbKb dvbLb dubMb dtbNb dsbOb drbPb dqbQb dpbRb dobSb dnbTb dmbSb dlbRb dkbQb djbPb dibOb dhbNb dgbMb dfbLb debKb ddbJb dcbIb dbbHb dabGb d `Fb d ~Eb d }Db d |Cb d {Bb d .Ab d ,zb d _yb d ^xb d ]wb d [vb d @ub d ?tb d >sb d =rb d /qb d ;pb d :ob d -nb c -nb c :ob c ;pb c /qb c =rb c >sb c ?tb c @ub c [vb c ]wb c ^xb c _yb c ,zb c .Ab c {Bb c |Cb c }Db c ~Eb c `Fb cabGb cbbHb ccbIb cdbJb cebKb cfbLb cgbMb chbNb cibOb cjbPb ckbQb clbRb cmbSb cnbTb cobSb cpbRb cqbQb crbPb csbOb ctbNb cubMb cvbLb cwbKb cxbJb cybIb czbHb cAbGb cBbFb cCbEb cDbDb cEbCb cFbBb cGbAb cHbzb cIbyb cJbxb cKbwb cLbvb cMbub cNbtb cObsb cPbrb cQbqb cRbpb cSbob cTbnb cSbmb cRblb cQbkb cPbjb cObib cNbhb cMbgb cLbfb cKbeb cJbdb cIbcb cHbbb cGbab cFb ` cEb ~ cDb } cCb | cBb { cAb . czb , cyb _ cxb ^ cwb ] cvb [ cub @ ctb ? csb > crb = cqb / cpb ; cob : cnb - cmb : clb ; ckb / cjb = cib > chb ? cgb @ cfb [ ceb ] cdb ^ ccb _ cbb , cab . c ` { c ~ | c } } c | ~ c { ` c .ab c ,bb c _cb c ^db c ]eb c [fb c @gb c ?hb c >ib c =jb c /kb c ;lb c :mb c -nb c"],"faceColors":[],"facesToFacets":["1ab","2 c d e f g h i j k l m n o p q r s t u v w x y z A B C D E F G H I J K L M N O P Q R S T U V W X Y Z 1 2 3 4 5 6 7 8 9 0 ! # $ % & ( ) * + - : ; / = > ? @ [ ] ^ _ , . { | } ~ `abbbcbdbebfbgbhbibjbkblbmbnbobpbqbrbsbtbubvbwbxbybzbAbBbCbDbEbFbGbHbIbJbKbLbMbNbObPbQbRbSbTbUbVbWbXbYbZb1b2b3b4b5b6b7b8b9b0b!b#b$b%b&b(b)b*b+b-b:b;b/b=b>b?b@b[b]b^b_b,b.b{b|b}b~b`bacbcccdcecfcgchcicjckclcmcncocpcqcrcsctcucvcwcxcyczcAcBcCcDcEcFcGcHcIcJcKcLcMcNcOcPcQcRcScTcUcVcWcXcYcZc1c2c3c4c5c6c7c8c9c0c!c#c$c%c&c(c)c*c+c-c:c;c/c=c>c?c@c[c]c^c_c,c.c{c|c}c~c`cadbdcdddedfdgdhdidjdkdldmdndodpdqdrdsdtdudvdwdxdydzdAdBdCdDdEdFdGdHdIdJdKdLdMdNdOdPdQdRdSdTdUdVdWdXdYdZd1d2d3d4d5d6d7d8d9d0d!d#d$d%d&d(d)d*d+d-d:d;d/d=d>d?d@d[d]d^d_d,d.d{d|d}d~d`daebecedeeefegeheiejekelemeneoepeqereseteuevewexeyezeAeBeCeDeEeFeGeHeIeJeKeLeMeNeOePeQeReSeTeUeVeWeXeYeZe1e2e3e4e5e6e7e8e9e0e!e#e$e%e&e(e)e*e+e-e:e;e/e=e>e?e@e[e]e^e_e,e.e{e|e}e~e`eafbfcfdfefffgfhfifjfkflfmfnfofpfqfrfsftfufvfwfxfyfzfAfBfCfDfEfFfGfHfIfJfKfLfMfNfOfPfQfRfSfTfUfVfWfXfYfZf1f2f3f4f5f6f7f8f9f0f!f#f$f%f&f(f)f*f","2+f-f","2:f;f","2/f=f>f?f@f[f]f^f_f,f.f{f|f}f~f`fagbgcgdgegfggghgigjgkglgmgngogpgqgrgsgtgugvgwgxgygzgAgBgCgDgEgFgGgHgIgJgKgLgMgNgOgPgQgRgSgTgUgVgWgXgYgZg1g2g3g4g5g6g7g8g9g0g!g#g$g%g&g(g)g*g+g-g:g;g/g=g>g?g@g[g]g^g_g,g.g{g|g}g~g`gahbhchdhehfhghhhihjhkhlhmhnhohphqhrhshthuhvhwhxhyhzhAhBhChDhEhFhGhHhIhJhKhLhMhNhOhPhQhRhShThUhVhWhXhYhZh1h2h3h4h5h6h7h8h9h0h!h#h$h%h&h(h)h*h+h-h:h;h/h=h>h?h@h[h]h^h_h,h.h{h|h}h~h`haibicidieifigihiiijikiliminioipiqirisitiuiviwixiyiziAiBiCiDiEiFiGiHiIiJiKiLiMiNiOiPiQiRiSiTiUiViWiXiYiZi1i2i3i4i5i6i7i8i9i0i!i#i$i%i&i(i)i*i+i-i:i;i/i=i>i?i@i[i]i^i_i,i.i{i|i}i~i`iajbjcjdjejfjgjhjijjjkjljmjnjojpjqjrjsjtjujvjwjxjyjzjAjBjCjDjEjFjGjHjIjJjKjLjMjNjOjPjQjRjSjTjUjVjWjXjYjZj1j2j3j4j5j6j7j8j9j0j!j#j$j%j&j(j)j*j+j-j:j;j/j=j>j?j@j[j]j^j_j,j.j{j|j}j~j`jakbkckdkekfkgkhkikjkkklkmknkokpkqkrksktkukvkwkxkykzkAkBkCkDkEkFkGkHkIkJkKkLkMkNkOkPkQkRkSkTkUkVkWkXkYkZk1k2k3k4k5k6k7k8k9k0k!k#k$k%k&k(k)k*k+k-k:k;k/k=k>k?k@k[k]k^k_k,k.k{k|k}k~k`kalblcldlelflglhliljlklllmlnlolplqlrlsltlulvlwlxlylzlAlBlClDlElFlGlHlIlJlKlLlMlNlOlPlQlRlSlTlUlVlWlXlYlZl","21l2l","23l4l","25l6l","27l8l","29l0l","2!l#l$l%l&l(l)l*l+l-l:l;l/l=l>l?l@l[l]l^l_l,l.l{l|l}l~l`lambmcmdmemfmgmhmimjmkmlmmmnmompmqmrmsmtmumvmwmxmymzmAmBmCmDmEmFmGmHmImJmKmLmMmNmOmPmQmRmSmTmUmVmWmXmYmZm1m2m3m4m5m6m7m8m9m0m!m#m$m%m&m(m)m*m+m-m:m;m/m=m>m?m@m[m]m^m_m,m.m{m|m}m~m`manbncndnenfngnhninjnknlnmnnnonpnqnrnsntnunvnwnxnynznAnBnCnDnEnFnGnHnInJnKnLnMnNnOnPnQnRnSnTnUnVnWnXnYnZn1n2n3n4n5n6n7n8n9n0n!n#n$n%n&n(n)n*n+n-n:n;n/n=n>n?n@n[n]n^n_n,n.n{n|n}n~n`naobocodoeofogohoiojokolomonooopoqorosotouovowoxoyozoAoBoCoDoEoFoGoHoIoJoKoLoMoNoOoPoQoRo","2SoToUoVoWoXoYoZo1o2o3o4o5o6o7o8o9o0o!o#o$o%o&o(o)o*o+o-o:o;o/o=o>o?o@o[o]o^o_o,o.o{o|o}o~o`oapbpcpdpepfpgphpipjpkplpmpnpopppqprpsptpupvpwpxpypzpApBpCpDpEpFpGpHpIpJpKpLpMpNpOpPpQpRpSpTpUpVpWpXpYpZp1p2p3p4p5p6p7p8p9p0p!p#p$p%p&p(p)p*p+p-p:p;p/p=p>p?p@p[p]p^p_p,p.p{p|p}p~p`paqbqcqdqeqfqgqhqiqjqkqlqmqnqoqpqqqrqsqtquqvqwqxqyqzqAqBqCqDqEqFqGqHqIqJqKqLqMqNqOqPqQqRqSqTqUqVqWqXqYqZq1q2q3q4q5q6q7q8q9q0q!q#q$q%q&q(q)q*q+q-q:q;q/q=q>q?q@q[q]q^q_q,q.q{q|q}q~q`qarbrcrdrerfrgrhrirjrkrlrmrnrorprqrrrsrtrurvrwrxryrzr","2ArBrCrDrErFrGrHrIrJrKrLrMrNrOrPrQrRrSrTrUrVrWrXrYrZr1r2r3r4r5r6r7r8r9r0r!r#r$r%r&r(r)r*r+r-r:r;r/r=r>r?r@r[r]r^r_r,r.r{r|r}r~r`rasbscsdsesfsgshsisjskslsmsnsospsqsrssstsusvswsxsyszsAsBsCsDsEsFsGsHsIsJsKsLsMsNsOsPsQsRsSsTsUsVsWsXsYsZs1s2s3s4s5s6s7s8s9s0s!s#s$s%s&s(s)s*s+s-s:s;s/s=s>s?s@s[s]s^s_s,s.s{s|s}s~s`satbtctdtetftgthtitjtktltmtntotptqtrtstttutvtwtxtytztAtBtCtDtEtFtGtHtItJtKtLtMtNtOtPtQtRtStTtUtVtWtXtYtZt1t2t3t4t5t6t7t8t9t0t!t#t$t%t&t(t)t*t+t-t:t;t/t=t>t?t@t[t]t^t_t,t.t{t|t}t~t`taubucudueufuguhu","2iujukulumunuoupuqurusutuuuvuwuxuyuzuAuBuCuDuEuFuGuHuIuJuKuLuMuNuOuPuQuRuSuTuUuVuWuXuYuZu1u2u3u4u5u6u7u8u9u0u!u#u$u%u&u(u)u*u+u-u:u;u/u=u>u?u@u[u]u^u_u,u.u{u|u}u~u`uavbvcvdvevfvgvhvivjvkvlvmvnvovpvqvrvsvtvuvvvwvxvyvzvAvBvCvDvEvFvGvHvIvJvKvLvMvNvOvPvQvRvSvTvUvVvWvXvYvZv1v2v3v4v5v6v7v8v9v0v!v#v$v%v&v(v)v*v+v-v:v;v/v=v>v?v@v[v]v^v_v,v.v{v|v}v~v`vawbwcwdwewfwgwhwiwjwkwlwmwnwowpwqwrwswtwuwvwwwxwywzwAwBwCwDwEwFwGwHwIwJwKwLwMwNwOwPwQwRwSwTwUwVwWwXwYwZw1w2w3w4w5w6w7w8w9w0w!w#w$w%w&w(w)w*w+w-w:w;w/w=w>w?w@w[w"],"floats":"0?9p(0Kv{4Uv~@yiRaTuxfNcb[Jver53S/C99]qbp?Tv5@WLhIZCa7!8g9BW-agmu1[rx$rH]RDFym~j!lKpO8e6y1b|w,Tua>HbC%xPPwK{R*~k.)LtD(g2Q]Yys1oRO_T97FSbNN8JDwnWMm$mXD^rKr#8ugS,=asAIy7;mDLbUne.LKZ)N[lk82]sqt=N#n-4Hfo[{Gl(a^qbF~A5a@`lC:Np-P9#l~~JTMiD4{{tFjrwIOjIGNrb&|RRF8mkw+Upa!f{Z{U=%.iEHTf26)cN+AnVM$rbN**-|Lpm,HYp_s:+-n>CBK4Ef5NUjMtzMm;2]~rb6Vr.$Wjm2[2pLQ[VD4{,k6kFfd|tR*ZvkIz95wsbpza8@nJjCz6pN!f{/9BLS/C9]QJcWDg{(]8L-~njo{kF=~^NQ]ww#rux@)}2phGc=h]V%9r&0jYlxo5Eg5VULG1*[(eM&L72TZCcP::+cRv?p}FlUbkEcfJ&$Bc?fC=wMQ0O/}yc_xg{$YF@Y*cj@$jDR$m2oswE:?vZNU/H]`rcma0#T9cWxJ0k7b1Ca,cu=0zZYI-+Hd#uyDoc}gf6Of}R$y+:3!gl%7t]b*og$;WH=_Nw]vS,*T.)xvIMk&ZiQbr(=$ofi&3&Il#K{-*1MtzR_asAx,in0$X9S_7eaMD2nkn0G0hKE;^#^_EUym~jPhF9V76eRer;LHNw6]TvoC{*wklEqP^N2r@4P$VlUGkEc#;NvPW{+l2i9yYp[,c,$G~$e282M{FcYBq$oApMr{dVK~rb7+T.jhTTgcjErRduDjNM,[Tkrk5EYRf2b#w7eIdmn/2p5]XD(?XWg~3OD|yc|e{xqCr&$7]2&Nrb`Lt,>#5P#^5ES%^Np]!*ycnjRs2Dyb|t/O!xD-dnEDRp1CcCh/qX&4~2]MJc!jM?ICc**e~HOwsb%S|Pn?BAiQiD;C5[pt>L6~@i$.kF/G08P%zWMP>i[x6p$>Nx[}r,qrTB>}rcn?))hJCJ>kC9I^qb[bi:jhK!nqlF;hAHt6wT[O!kPE1ClXf2fKw1Yr[iu3NpNYC-j^e-_h-ujKociH$MuI:3)+6ux5qbDHJ_q+{D%YfC@N|AHvH/.Za-xQh$W*A]z3pgde~to8e:zU>_zs2i>Ij(4OLbdvfEo`k)7$fmWtg(}:of$zTH>wfE#~OSSUnl(]a(8nofK5Y[5SRCNqs,Q_bn+$Js{Zu;UADRM1Q0~UDWJ9|j(*]sDHK2#.g6U4KAZ3CKji{&E@Ob7(&M`-PDh2u^EUmj`s6;v]Ob#1[V>$VGzXC{x1>i&3?&2zLb;h.?RoeT|gN5G%Sly%_s&R=NjM^MrXC{6x);s69fJ}tuje.?hrfHExH?=oY9^v8epg;[v%o#P?)vx{knk*=;S6ogkP.:>SG4E4xX?Hj+Az!lj1]rDGD&x_nSopI#QhclP3O9C@Hb%[7!X!E4c}m4IDM9k>Hb;{gEzoiZgv.)7A-X@QJ9l=HbE{70}e*^iEX+ITikP9[rgP#U*je.j~9Lt,;jIkF9g06e(u}t0+X@]%TMp?TjdQD9356eLO.:?CyU28GLg|C9J36ee.N2uw,=i%0{:Ya-!gEiSrgC-}H&Fj_Zw6S++_kBS]qb0TE5d}6mVsKpiH$M.6UTe[fC)pZ[Rh!7xQh$7=w]=]qb6owZ!p{1oe2CkOm2o~h:f!5m+a3C)>ZAEHBG]:OjisRpg960^QC>*e~H4QvcN[;-1O4>4pkIuNrbjq:$(2:GW@2DxhVUaIt,W,.kW)3D}zB&dm53NnZm#>Up{zz*@tW$r{dVYMCcIWLw|z%SnMoVE$rbye6>s1;#L@kEj}a;ak(_Xbd|e282_|FcVN$%6Q93NBmleY5EgN*80~U+9?y^&4~2MNJc}geDfceLiSgj!llFIzeu[GC0kvlL9rlF)w,:[SGLTQA91wsbM$;zge7iCv6plkM?QZQ,gb6E.u,:d+~5z+>2#~rbMwQ#)^kk>(2p#Bq$J}2zrGlE^k28"}]};
+                
+                function baseDecode( input ) {
+                    var baseCt = base.length;
+                    var output = [];
+                    var len = parseInt( input[0] ); // num chars of each element
+                    for ( var i=1; i<input.length; i+=len ) {
+                        var str = input.substring(i, i+len).trim();
+                        var val = 0;
+                        for ( var s=0; s<str.length; s++ ) {
+                            var ind = base.indexOf(str[s]);
+                            val += ind * Math.pow(baseCt, s);
+                        }
+                        output.push(val);
+                    }
+                    return output;
+                }
+                function floatDecode( input ) {
+                    var baseCt = base.length;
+                    var baseFloatCt = baseFloat.length;
+                    var numString = '';
+                    for ( var i=0; i<input.length; i+=4 ) {
+                        var b90chunk = input.substring(i, i+4).trim();
+                        var quotient = 0;
+                        for ( var s=0; s<b90chunk.length; s++ ) {
+                            var ind = base.indexOf(b90chunk[s]);
+                            quotient += ind * Math.pow(baseCt, s);
+                        }
+                        var buffer = '';
+                        for ( var s=0; s<7; s++ ) {
+                            buffer = baseFloat[ quotient % baseFloatCt ] + buffer;
+                            quotient = parseInt(quotient / baseFloatCt);
+                        }
+                        numString += buffer;
+                    }
+                    var trailingCommas = 0;
+                    for ( var s=1; s<7; s++ ) {
+                        if( numString[ numString.length-s ] == baseFloat[0] ) { trailingCommas++; }
+                    }
+                    numString = numString.substring(0, numString.length - trailingCommas);
+                    return numString;
+                }
+                // Decode from base90 and distribute the floats
+                for ( var obj=0; obj<data.objects.length; obj++ ) {
+                    if (!disableCompression) {
+                        data.objects[obj].floats = JSON.parse('[' + floatDecode( data.objects[obj].floats ) + ']');
+                        data.objects[obj].verts = baseDecode( data.objects[obj].verts );
+                        for ( var v=0; v<data.objects[obj].verts.length; v++ ) {
+                            data.objects[obj].verts[v] = data.objects[obj].floats[ data.objects[obj].verts[v] ];
+                        }
+                        data.objects[obj].facets = baseDecode( data.objects[obj].facets );
+                        for ( var w=0; w<data.objects[obj].wires.length; w++ ) {
+                            data.objects[obj].wires[w] = baseDecode( data.objects[obj].wires[w] );
+                            for ( var wv=0; wv<data.objects[obj].wires[w].length; wv++ ) {
+                                data.objects[obj].wires[w][wv] = data.objects[obj].floats[ data.objects[obj].wires[w][wv] ];
+                            }
+                        }
+                        for ( var f=0; f<data.objects[obj].facesToFacets.length; f++ ) {
+                            data.objects[obj].facesToFacets[f] = baseDecode( data.objects[obj].facesToFacets[f] );
+                        }
+                    }
+                    data.objects[obj].floats = false;
+                }
+                
+                // Get bounds for global clipping
+                for ( var obj=0; obj<data.objects.length; obj++ ) {
+                    if (obj == 0) {
+                        var globalMaxMin = [{min:data.objects[obj].verts[0],max:data.objects[obj].verts[0]},
+                                            {min:data.objects[obj].verts[1],max:data.objects[obj].verts[1]},
+                                            {min:data.objects[obj].verts[2],max:data.objects[obj].verts[2]}]
+                    }
+                    for ( var v=0; v<data.objects[obj].verts.length; v++ ) {
+                        if ( data.objects[obj].verts[v] < globalMaxMin[v % 3].min ) { globalMaxMin[v % 3].min = data.objects[obj].verts[v]; }
+                        if ( data.objects[obj].verts[v] > globalMaxMin[v % 3].max ) { globalMaxMin[v % 3].max = data.objects[obj].verts[v]; }
+                    }
+                }
+                var bigrange = 0;
+                for ( var i=0; i<globalMaxMin.length; i++ ) { // add a little extra
+                    var range = globalMaxMin[i].max - globalMaxMin[i].min;
+                    if ( range > bigrange ) { bigrange = range; }
+                    globalMaxMin[i].min -= range * 0.01;
+                    globalMaxMin[i].max += range * 0.01;
+                }
+                
+                var camCenter = new THREE.Vector3(
+                    0.5 * (globalMaxMin[0].max - globalMaxMin[0].min) + globalMaxMin[0].min,
+                    0.5 * (globalMaxMin[1].max - globalMaxMin[1].min) + globalMaxMin[1].min,
+                    0.5 * (globalMaxMin[2].max - globalMaxMin[2].min) + globalMaxMin[2].min );
+                var viewSize = 1.5 * bigrange; // make the view area a little bigger than the object
+                var aspectRatio = window.innerWidth / window.innerHeight;
+                var originalAspect = aspectRatio 
+                function initCam(camera) {
+                    camera.position.set(
+                        data.camera.position_x,
+                        data.camera.position_y,
+                        data.camera.position_z);
+                    camera.lookAt( camCenter );
+                    camera.updateMatrixWorld();
+                }
+                var cameraType = data.camera.type;
+                var persCamera = new THREE.PerspectiveCamera( data.camera.focalDistance, window.innerWidth / window.innerHeight, 1, 10000 );
+                initCam(persCamera);
+                var orthCamera = new THREE.OrthographicCamera(-aspectRatio * viewSize / 2, aspectRatio * viewSize / 2, viewSize / 2, -viewSize / 2, -10000, 10000);
+                initCam(orthCamera);
+                
+                function assignMesh( positions, color, opacity ) {
+                    
+                    var geometry = new THREE.BufferGeometry();
+                    geometry.setAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+                    
+                    // EdgeSplitModifier is used to combine verts so that smoothing normals can be generated WITHOUT removing the hard edges of the design
+                    // REF: https://threejs.org/examples/?q=edge#webgl_modifier_edgesplit - https://github.com/mrdoob/three.js/pull/20535
+                    var edgeSplit = new EdgeSplitModifier();
+                    var cutOffAngle = 20;
+                    geometry = edgeSplit.modify( geometry, cutOffAngle * Math.PI / 180 );
+                    geometry.computeVertexNormals();
+                    geometry.computeBoundingSphere();
+                    
+                    var transparent = false;
+                    if (opacity != 1.0) { transparent = true; }
+                    var material = new THREE.MeshLambertMaterial({
+                        color: color,
+                        side: THREE.DoubleSide,
+                        vertexColors: false,
+                        flatShading: false,
+                        opacity: opacity,
+                        transparent: transparent,
+                        fog: false
+                    });
+                    
+                    var meshobj = new THREE.Mesh( geometry, material );
+                    meshobj.name = meshobj.uuid;
+                    faces.push( meshobj.uuid );
+                    scene.add( meshobj );
+                    raycasterObj.push(meshobj);
+                }
+                
+                var objects = [];
+                var positions;
+                for ( var obj=0; obj<data.objects.length; obj++ ) { // Loop Objects
+                    
+                    var faces = []; // Each face gets its own material because they each can have different colors
+                    if (data.objects[obj].facesToFacets.length > 0) {
+                        for ( var f=0; f<data.objects[obj].facesToFacets.length; f++ ) {
+                            var facecolor = data.objects[obj].color;
+                            if (data.objects[obj].faceColors.length > 0) {
+                                facecolor = data.objects[obj].faceColors[f];
+                            }
+                            positions = new Float32Array( data.objects[obj].facesToFacets[f].length * 9 );
+                            for ( var a=0; a<data.objects[obj].facesToFacets[f].length; a++ ) {
+                                for ( var b=0; b<3; b++ ) {
+                                    for ( var c=0; c<3; c++ ) {
+                                        positions[ 9*a + 3*b + c ] = data.objects[obj].verts[ 3*data.objects[obj].facets[ 3*data.objects[obj].facesToFacets[f][a] + b ] + c ];
+                                    }
+                                }
+                            }
+                            assignMesh( positions, facecolor, data.objects[obj].opacity );
+                        }
+                    } else { // No facesToFacets means that there was a tessellate() mismatch inside FreeCAD. Use all facets in object create this mesh
+                        positions = new Float32Array( data.objects[obj].facets.length * 3 );
+                        for ( var a=0; a<data.objects[obj].facets.length; a++ ) {
+                            for ( var b=0; b<3; b++ ) {
+                                positions[ 3*a + b ] = data.objects[obj].verts[ 3*data.objects[obj].facets[a] + b ];
+                            }
+                        }
+                        assignMesh( positions, data.objects[obj].color, data.objects[obj].opacity );
+                    }
+                    
+                    // Wires
+                    // cannot have lines in WebGL that are wider than 1px due to browser limitations so Line2 workaround lib is used
+                    // REF: https://threejs.org/examples/?q=fat#webgl_lines_fat - https://jsfiddle.net/brLk6aud/1/
+                    var wirematerial = new LineMaterial( {
+                        color: new THREE.Color('rgb(0,0,0)'),
+                        linewidth: 2, // in pixels
+                        dashed: false, dashSize: 1, gapSize: 1, dashScale: 3
+                    } );
+                    wirematerial.resolution.set( window.innerWidth, window.innerHeight );
+                    
+                    var wires = [];
+                    for ( var w=0; w<data.objects[obj].wires.length; w++ ) {
+                        var wiregeometry = new LineGeometry();
+                        wiregeometry.setPositions( data.objects[obj].wires[w] );
+                        var wire = new Line2( wiregeometry, wirematerial );
+                        wire.computeLineDistances();
+                        wire.scale.set( 1, 1, 1 );
+                        wire.name = wire.uuid;
+                        scene.add( wire );
+                        wires.push( wire.name );
+                    }
+                    objects.push( { name: data.objects[obj].name, faces: faces, wires: wires } );
+                }
+                
+                // ---- GUI Init ----
+                const gui = new GUI( { width: 300 } );
+                var guiparams = {
+                    wiretype: 'Normal',
+                    wirewidth: wirematerial.linewidth,
+                    wirecolor: '#'+wirematerial.color.getHexString(),
+                    clippingx: 100,
+                    clippingy: 100,
+                    clippingz: 100,
+                    cameraType: cameraType,
+                    navright: function() { navChange( [1,0,0] ); },
+                    navtop:   function() { navChange( [0,1,0] ); },
+                    navfront: function() { navChange( [0,0,1] ); }
+                };
+                
+                // ---- Wires ----
+                if (!wirematerial.visible) { guiparams.wiretype = 'None'; }
+                if (wirematerial.dashed) { guiparams.wiretype = 'Dashed'; }
+                const wiretypes = { Normal: 'Normal', Dashed: 'Dashed', None: 'None' };
+                
+                var wireFolder = gui.addFolder( 'Wire' );
+                wireFolder.add( guiparams, 'wiretype', wiretypes ).name('Wire Display').onChange( wireChange );
+                wireFolder.add( guiparams, 'wirewidth').min(1).max(5).step(1).name('Wire Width').onChange( wireChange );
+                wireFolder.addColor( guiparams, 'wirecolor' ).name('Wire Color').onChange( wireChange );
+                wireFolder.close();
+                
+                function wireChange() {
+                    for ( var obj=0; obj<objects.length; obj++ ) {
+                        if ( objects[obj].wires.length == 0 ) { continue; }
+                        var m = scene.getObjectByName( objects[obj].wires[0] ).material; // all wires in obj share mat
+                        if (m.dashed) {
+                            if (guiparams.wiretype != 'Dashed') {
+                                m.dashed = false;
+                                delete m.defines.USE_DASH;
+                            }
+                        } else {
+                            if (guiparams.wiretype == 'Dashed') {
+                                m.dashed = true;
+                                // Dashed lines require this as of r122. delete if not dashed
+                                m.defines.USE_DASH = ""; // https://discourse.threejs.org/t/dashed-line2-material/10825
+                            }
+                        }
+                        if (guiparams.wiretype == 'None') {
+                            m.visible = false;
+                        } else {
+                            m.visible = true;
+                        }
+                        m.linewidth = guiparams.wirewidth;
+                        m.color = new THREE.Color(guiparams.wirecolor);
+                        m.needsUpdate = true;
+                    }
+                }
+                wireChange();
+                
+                // ---- Clipping ----
+                var clippingFolder = gui.addFolder( 'Clipping' );
+                clippingFolder.add( guiparams, 'clippingx').min(0).max(100).step(1).name('X-Axis Clipping').onChange( clippingChange );
+                clippingFolder.add( guiparams, 'clippingy').min(0).max(100).step(1).name('Y-Axis Clipping').onChange( clippingChange );
+                clippingFolder.add( guiparams, 'clippingz').min(0).max(100).step(1).name('Z-Axis Clipping').onChange( clippingChange );
+                clippingFolder.close();
+                
+                var clipPlaneX = new THREE.Plane( new THREE.Vector3( -1, 0, 0 ), 0 );
+                var clipPlaneY = new THREE.Plane( new THREE.Vector3( 0, -1, 0 ), 0 );
+                var clipPlaneZ = new THREE.Plane( new THREE.Vector3( 0, 0, -1 ), 0 );
+                function clippingChange() {
+                    if( guiparams.clippingx < 100 || guiparams.clippingy < 100 || guiparams.clippingz < 100 ) {
+                        if (renderer.clippingPlanes.length == 0) {
+                            renderer.clippingPlanes.push( clipPlaneX, clipPlaneY, clipPlaneZ );
+                        }
+                    }
+                    clipPlaneX.constant = (globalMaxMin[0].max - globalMaxMin[0].min) * guiparams.clippingx / 100.0 + globalMaxMin[0].min;
+                    clipPlaneY.constant = (globalMaxMin[1].max - globalMaxMin[1].min) * guiparams.clippingy / 100.0 + globalMaxMin[1].min;
+                    clipPlaneZ.constant = (globalMaxMin[2].max - globalMaxMin[2].min) * guiparams.clippingz / 100.0 + globalMaxMin[2].min;
+                }
+                
+                // ---- Camera & Navigation ----
+                var camFolder = gui.addFolder( 'Camera' );
+                const cameraTypes = { Perspective: 'Perspective', Orthographic: 'Orthographic' };
+                camFolder.add( guiparams, 'cameraType', cameraTypes ).name('Wire Display').onChange( cameraChange );
+                camFolder.add( guiparams, 'navright' ).name('View Right');
+                camFolder.add( guiparams, 'navtop' ).name('View Top');
+                camFolder.add( guiparams, 'navfront' ).name('View Front');
+                function navChange( v ) {
+                    var t = new THREE.Vector3();
+                    new THREE.Box3().setFromObject(scene).getSize( t );
+                    persControls.object.position.set( v[0]*t.x + camCenter.x, v[1]*t.y + camCenter.y, v[2]*t.z + camCenter.z);
+                    persControls.target = camCenter;
+                    persControls.update();
+                    orthControls.object.position.set( v[0]*t.x + camCenter.x, v[1]*t.y + camCenter.y, v[2]*t.z + camCenter.z);
+                    orthControls.target = camCenter;
+                    orthControls.update();
+                }
+                function cameraChange( v ) {
+                    cameraType = v;
+                }
+                
+                var guiObjData = [];
+                var guiObjects = gui.addFolder( 'Objects' );
+                for ( var obj=0; obj<data.objects.length; obj++ ) {
+                    guiObjData.push( {index: obj, color: data.objects[obj].color, opacity:data.objects[obj].opacity } );
+                    var guiObject = guiObjects.addFolder( objects[obj].name );
+                    guiObject.addColor( guiObjData[ guiObjData.length-1 ], 'color' ).name('Color').onChange( GUIObjectChange );
+                    guiObject.add( guiObjData[ guiObjData.length-1 ], 'opacity' ).min(0.0).max(1.0).step(0.05).name('Opacity').onChange( GUIObjectChange );
+                }
+                function GUIObjectChange( v ) {
+                    for ( var f=0; f<objects[this.object.index].faces.length; f++ ) {
+                        var m = scene.getObjectByName( objects[this.object.index].faces[f] ).material;
+                        if (this.property == 'color') { m.color.setStyle( v ); }
+                        if (this.property == 'opacity') {
+                            m.opacity = v;
+                            if ( v == 1.0 ) { m.transparent = false; } else { m.transparent = true; }
+                        }
+                    }
+                    if (this.property == 'opacity' && objects[ this.object.index ].wires.length > 0) {
+                        var w = scene.getObjectByName( objects[ this.object.index ].wires[0] ).material; // all wires in obj share mat
+                        w.opacity = v;
+                        if ( v == 1.0 ) { w.transparent = false; } else { w.transparent = true; }
+                    }
+                }
+                
+                // Make simple orientation arrows and box - REF: http://jsfiddle.net/b97zd1a3/16/
+                var arrowCanvasSize = { x: 150, y: 150 }; // in pixels on the lower left
+                var arrowRenderer = new THREE.WebGLRenderer( { alpha: true } ); // clear
+                arrowRenderer.setClearColor( 0x000000, 0 );
+                arrowRenderer.setSize( arrowCanvasSize.x, arrowCanvasSize.y );
+                
+                var arrowCanvas = document.body.appendChild( arrowRenderer.domElement );
+                arrowCanvas.setAttribute('id', 'arrowCanvas');
+                arrowCanvas.style.width = arrowCanvasSize.x;
+                arrowCanvas.style.height = arrowCanvasSize.y;
+                      
+                var arrowScene = new THREE.Scene();
+                
+                var arrowCamera = new THREE.PerspectiveCamera( 50, arrowCanvasSize.x / arrowCanvasSize.y, 1, 500 );
+                arrowCamera.up = persCamera.up; // important!
+                
+                var arrowPos = new THREE.Vector3( 0,0,0 );
+                arrowScene.add( new THREE.ArrowHelper( new THREE.Vector3( 1,0,0 ), arrowPos, 60, 0x7F2020, 20, 10 ) );
+                arrowScene.add( new THREE.ArrowHelper( new THREE.Vector3( 0,1,0 ), arrowPos, 60, 0x207F20, 20, 10 ) );
+                arrowScene.add( new THREE.ArrowHelper( new THREE.Vector3( 0,0,1 ), arrowPos, 60, 0x20207F, 20, 10 ) );
+                arrowScene.add(new THREE.Mesh(
+                    new THREE.BoxGeometry( 40, 40, 40 ),
+                    new THREE.MeshLambertMaterial( { color: 0xaaaaaa, flatShading: false } )
+                ));
+                arrowScene.add(new THREE.HemisphereLight(0xC7E8FF, 0xFFE3B3, 1.2));
+                
+                // Controls
+                var persControls = new OrbitControls( persCamera, renderer.domElement );
+                persControls.target = camCenter; // rotate around center of parts
+                persControls.update();
+                var orthControls = new OrbitControls( orthCamera, renderer.domElement );
+                orthControls.target = camCenter; // rotate around center of parts
+                orthControls.update();
+                
+                window.addEventListener( 'resize', onWindowResize, false );
+                onWindowResize();
+                
+                var stats = new Stats();
+                document.body.appendChild( stats.dom );
+                
+                renderer.domElement.addEventListener( 'mousemove', onMouseMove );
+                
+                var animate = function () {
+                    requestAnimationFrame( animate );
+                    
+                    persControls.update();
+                    if (cameraType == 'Perspective') {
+                        arrowCamera.position.copy( persCamera.position );
+                        arrowCamera.position.sub( persControls.target );
+                    }
+                    orthControls.update();
+                    if (cameraType == 'Orthographic') {
+                        arrowCamera.position.copy( orthCamera.position );
+                        arrowCamera.position.sub( orthControls.target );
+                    }
+                    arrowCamera.lookAt( arrowScene.position );
+                    arrowCamera.position.setLength( 200 );
+                    
+                    stats.begin();
+                    if (cameraType == 'Perspective') { renderer.render( scene, persCamera ); }
+                    if (cameraType == 'Orthographic') { renderer.render( scene, orthCamera ); }
+                    arrowRenderer.render( arrowScene, arrowCamera );
+                    stats.end();
+                };
+                animate();
+                
+                function onWindowResize() {
+                    for ( var obj=0; obj<objects.length; obj++ ) {
+                        if (objects[obj].wires.length > 0) {
+                            var w = scene.getObjectByName( objects[obj].wires[0] ).material.resolution.set( window.innerWidth, window.innerHeight ); // all wires in obj share mat
+                        }
+                    }
+                    
+                    // Ortho camera needs updating. REF: https://stackoverflow.com/questions/39373113/three-js-resize-window-not-scaling-properly
+                    var aspect = window.innerWidth / window.innerHeight;
+                    var change = originalAspect / aspect;
+                    var newSize = viewSize * change;
+                    orthCamera.left = -aspect * newSize / 2;
+                    orthCamera.right = aspect * newSize  / 2;
+                    orthCamera.top = newSize / 2;
+                    orthCamera.bottom = -newSize / 2;
+                    orthCamera.updateProjectionMatrix();
+                    
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                }
+                
+                function onMouseMove( e ) {
+                    var c = false;
+                    if (cameraType == 'Orthographic') { c = orthCamera;}
+                    if (cameraType == 'Perspective') { c = persCamera;}
+                    if (!c) { return; }
+                    
+                    var raycaster =  new THREE.Raycaster();                                        
+                    raycaster.setFromCamera( new THREE.Vector2(
+                        ( e.clientX / window.innerWidth ) * 2 - 1,
+                        -( e.clientY / window.innerHeight ) * 2 + 1
+                    ), c );
+                    var intersects = raycaster.intersectObjects( raycasterObj );
+                    
+                    var chosen = '';
+                    if ( intersects.length > 0 ) {
+                        for ( var i=0; i<intersects.length; i++ ) {
+                            var m = intersects[i].object.material;
+                            if (m.opacity > 0) {
+                                if (m.emissive.getHex() == 0x000000) {
+                                    m.emissive.setHex( 0x777777 );
+                                    m.needsUpdate = true;
+                                }
+                                chosen = intersects[i].object.name;
+                                break;
+                            }
+                        }
+                    }
+                    for ( var r=0; r<raycasterObj.length; r++ ) {
+                        if (raycasterObj[r].name == chosen) { continue; }
+                        if (raycasterObj[r].material.emissive.getHex() != 0x000000) {
+                            raycasterObj[r].material.emissive.setHex( 0x000000 );
+                            raycasterObj[r].material.needsUpdate = true;
+                        }
+                    }
+                }
+                data = false; // free up some ram
+            </script>
+        </body>
+    </html>
+    
